@@ -32,22 +32,21 @@ export const useGamesStore = defineStore("games", () => {
 
   async function fetchGames(page: number = currentPage.value) {
     try {
-      const { data, error } = await useFetch<{ items: Game[]; total: number }>(
-        `/api/games?page=${page}&size=${itemsPerPage.value}`
+      const response = await $fetch<{ items: Game[]; total: number }>(
+        `/api/games`,
+        {
+          params: {
+            page: page,
+            size: itemsPerPage.value,
+          },
+        }
       );
 
-      if (error.value) {
-        console.error(error.value);
-        return;
-      }
-
-      if (data.value) {
-        games.value = data.value.items;
-        totalItems.value = data.value.total;
-        currentPage.value = page;
-      }
+      games.value = response.items;
+      totalItems.value = response.total;
+      currentPage.value = page;
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching games:", err);
     }
   }
 
@@ -76,12 +75,20 @@ export const useGamesStore = defineStore("games", () => {
   const allGames = ref<Game[]>([]);
   async function fetchAllGames() {
     try {
-      const { data, error } = await useFetch<{ items: Game[]; total: number }>(
-        "/api/games?page=1&size=1000"
+      const response = await $fetch<{ items: Game[]; total: number }>(
+        "/api/games",
+        {
+          params: {
+            page: 1,
+            size: 1000,
+          },
+        }
       );
-      if (data.value) {
-        allGames.value = data.value.items;
-        totalItems.value = data.value.total;
+
+      if (response) {
+        allGames.value = response.items;
+        totalItems.value = response.total;
+
         if (history.value.length === 0) {
           recordHistory(allGames.value);
           historyIndex.value = 0;
@@ -93,14 +100,11 @@ export const useGamesStore = defineStore("games", () => {
           }
         }
         updatePaginatedGames();
-      } else if (error.value) {
-        console.error(error.value);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching all games:", err);
     }
   }
-
   function moveGame(oldAbsoluteIndex: number, newAbsoluteIndex: number) {
     if (
       oldAbsoluteIndex < 0 ||
